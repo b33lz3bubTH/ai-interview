@@ -4,7 +4,7 @@ import { expressHandler } from 'trpc-playground/handlers/express';
 import { createAppRouter } from './routers';
 import { EventManager } from '@/manager/EventManager';
 import logger from '@/utils/logger';
-import config from '@/config';
+import { appConfig } from '@/config';
 
 export async function createTRPCServer(eventManager: EventManager) { 
   const appRouter = createAppRouter(eventManager);
@@ -29,7 +29,7 @@ export async function createTRPCServer(eventManager: EventManager) {
     });
 
     app.use('/trpc-playground', playgroundHandler);
-    logger.info(`🚀 tRPC Playground available at http://localhost:${config.port}/trpc-playground`);
+    logger.info(`🚀 tRPC Playground available at http://localhost:${(await appConfig()).port}/trpc-playground`);
   }
 
   return { app, appRouter };
