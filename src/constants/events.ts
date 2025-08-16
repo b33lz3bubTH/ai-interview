@@ -5,12 +5,7 @@ export const EVENT_NAMES = {
   USER_DELETED: 'user.deleted',
   USER_LOGIN: 'user.login',
   USER_LOGOUT: 'user.logout',
-
-  // Order events
-  ORDER_CREATED: 'order.created',
-  ORDER_UPDATED: 'order.updated',
-  ORDER_CANCELLED: 'order.cancelled',
-  ORDER_COMPLETED: 'order.completed',
+  USER_ME: 'user.me',
 
   // System events
   SYSTEM_STARTUP: 'system.startup',

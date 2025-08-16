@@ -21,15 +21,15 @@ export function createUserRouter(eventManager: EventManager) {
       .input(userSchema)
       .mutation(async ({ input }) => {
         const user = { ...input, createdAt: new Date() };
-        
+
         const event: Event = {
           name: EVENT_NAMES.USER_CREATED,
           payload: user,
           context: createEventContext('trpc', input.id)
         };
-        
+
         await eventManager.emit(event);
-        
+
         return user;
       }),
 
@@ -40,15 +40,15 @@ export function createUserRouter(eventManager: EventManager) {
       }))
       .mutation(async ({ input }) => {
         const updatedUser = { id: input.id, ...input.updates, updatedAt: new Date() };
-        
+
         const event: Event = {
           name: EVENT_NAMES.USER_UPDATED,
           payload: updatedUser,
           context: createEventContext('trpc', input.id)
         };
-        
+
         await eventManager.emit(event);
-        
+
         return updatedUser;
       }),
 
@@ -60,9 +60,9 @@ export function createUserRouter(eventManager: EventManager) {
           payload: { id: input.id },
           context: createEventContext('trpc', input.id)
         };
-        
+
         await eventManager.emit(event);
-        
+
         return { success: true, id: input.id };
       }),
 
@@ -77,9 +77,9 @@ export function createUserRouter(eventManager: EventManager) {
           payload: { email: input.email },
           context: createEventContext('trpc')
         };
-        
+
         await eventManager.emit(event);
-        
+
         return { success: true, email: input.email };
       }),
 
@@ -91,9 +91,26 @@ export function createUserRouter(eventManager: EventManager) {
           payload: { userId: input.userId },
           context: createEventContext('trpc', input.userId)
         };
-        
+
         await eventManager.emit(event);
-        
+
+        return { success: true, userId: input.userId };
+      }),
+
+    me: userProcedure
+      .input(z.object({
+        userId: z.string(),
+        token: z.string().optional().nullable(),
+      }))
+      .query(async ({ input }) => {
+        const event: Event = {
+          name: EVENT_NAMES.USER_ME,
+          payload: { userId: input.userId, token: input.token ?? "default token" },
+          context: createEventContext('trpc')
+        };
+
+        await eventManager.emit(event);
+
         return { success: true, userId: input.userId };
       })
   });

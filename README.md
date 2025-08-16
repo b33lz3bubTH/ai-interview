@@ -9,6 +9,7 @@ A professional Node.js TypeScript project implementing tRPC SDK microservices wi
 - **tRPC Integration**: Type-safe API with automatic event emission
 - **SOLID Principles**: Clean architecture with dependency injection
 - **Professional Setup**: Winston logging, configuration management, graceful shutdown
+- **Interactive Playground**: Beautiful web UI for testing tRPC endpoints with autocomplete
 
 ## Project Structure
 
@@ -28,8 +29,6 @@ src/
 │   ├── BasePlugin.ts          # Abstract base plugin class
 │   ├── UserPlugin.ts          # User event handlers
 │   └── OrderPlugin.ts         # Order event handlers
-├── events/
-│   └── EventFactory.ts        # Event creation utilities
 ├── trpc/
 │   ├── routers/
 │   │   ├── index.ts           # Main router that merges all routers
@@ -62,11 +61,71 @@ src/
    npm run dev
    ```
 
-4. **Build for production**:
+4. **Run multiple instances** (for testing microservices):
+   ```bash
+   # Option 1: Use the convenience script (recommended)
+   npm run dev:multi
+   
+   # Option 2: Run individual instances
+   # Instance 1 on port 3000
+   npm run dev:3000
+   
+   # Instance 2 on port 3001
+   npm run dev:3001
+   
+   # Instance 3 on port 3002
+   npm run dev:3002
+   
+   # Instance 4 on port 3003
+   npm run dev:3003
+   ```
+
+5. **Custom port** (command line):
+   ```bash
+   npm run dev -- --port=4000
+   ```
+
+6. **Run multiple instances with custom count**:
+   ```bash
+   # Run 5 instances (ports 3000-3004)
+   ./scripts/run-multiple.sh 5
+   
+   # Run 2 instances (ports 3000-3001)
+   ./scripts/run-multiple.sh 2
+   ```
+
+7. **Build for production**:
    ```bash
    npm run build
    npm start
    ```
+
+## Testing Your API
+
+### **🎮 Interactive tRPC Playground (Recommended)**
+Open your browser and navigate to: `http://localhost:3000/trpc-playground`
+
+**Features:**
+- **🚀 Professional tRPC Playground** - Official tRPC playground with full autocomplete
+- **📝 Schema Discovery** - Automatically discovers your tRPC procedures
+- **🔍 Real-time Testing** - Test queries and mutations with instant results
+- **📊 Type Safety** - Full TypeScript support with type checking
+- **🎯 Auto-completion** - Intelligent suggestions for all your endpoints
+- **📱 Modern UI** - Clean, professional interface
+
+### **Command Line Testing**
+```bash
+# Test user creation
+curl -X POST http://localhost:3000/trpc/user.create \
+  -H "Content-Type: application/json" \
+  -d '{"id":"user1","email":"test@example.com","name":"Test User"}'
+
+# Test user.me query
+curl "http://localhost:3000/trpc/user.me?input=%7B%22userId%22%3A%22user123%22%2C%22token%22%3A%22test-token%22%7D"
+
+# Test system health
+curl "http://localhost:3000/trpc/system.health"
+```
 
 ## Event System
 
@@ -106,6 +165,7 @@ The tRPC API is organized by resources:
 - `POST /trpc/user.delete` - Delete user
 - `POST /trpc/user.login` - User login
 - `POST /trpc/user.logout` - User logout
+- `GET /trpc/user.me` - Get user info
 
 ### Order Endpoints
 - `POST /trpc/order.create` - Create order
@@ -137,6 +197,7 @@ ASYNC_EVENT_HANDLING=true
 - `GET /health` - Health check
 - `GET /plugins` - List registered plugins
 - `POST /trpc/*` - tRPC API endpoints (see structure above)
+- `GET /trpc-playground` - Interactive tRPC playground
 
 ## Development
 

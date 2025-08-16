@@ -3,11 +3,11 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { EventManager } from '@/manager/EventManager';
 import { PluginManager } from '@/manager/PluginManager';
-import { Event, EventContext } from '@/shared/common/types';
-import { EVENT_NAMES } from '@/constants/events';
 import { createTRPCServer } from '@/trpc/server';
 import logger from '@/utils/logger';
 import config from '@/config';
+import { Event } from '@/shared/common/types';
+import { EVENT_NAMES } from '@/constants/events';
 
 export class Application {
   private app: express.Application;
@@ -22,11 +22,36 @@ export class Application {
     
     this.setupMiddleware();
     this.setupRoutes();
-    this.setupTRPC();
   }
 
   private setupMiddleware(): void {
-    this.app.use(helmet());
+    // Configure helmet with CSP that allows tRPC playground
+    this.app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            "https://cdn.jsdelivr.net",
+            "https://unpkg.com"
+          ],
+          styleSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "https://cdn.jsdelivr.net",
+            "https://unpkg.com"
+          ],
+          imgSrc: ["'self'", "data:", "https:"],
+          connectSrc: ["'self'", "https:", "wss:"],
+          fontSrc: ["'self'", "https:", "data:"],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          frameSrc: ["'none'"],
+        },
+      },
+    }));
     this.app.use(cors());
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
@@ -34,73 +59,110 @@ export class Application {
 
   private setupRoutes(): void {
     this.app.get('/health', (req, res) => {
-      res.json({ status: 'ok', timestamp: new Date().toISOString() });
+      res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+      });
     });
 
     this.app.get('/plugins', (req, res) => {
-      const plugins = this.pluginManager.getAllPlugins().map(plugin => ({
-        name: plugin.name,
-        version: plugin.version,
-        description: plugin.description
-      }));
-      res.json(plugins);
+      const plugins = this.pluginManager.getAllPlugins();
+      res.json({
+        plugins: plugins.map(p => p.name),
+        count: plugins.length,
+      });
     });
   }
 
-  private setupTRPC(): void {
-    const { app: trpcApp } = createTRPCServer(this.eventManager);
-    this.app.use(trpcApp);
+  private async setupTRPC(): Promise<void> {
+    try {
+      const { app: trpcApp } = await createTRPCServer(this.eventManager);
+      
+      // Mount tRPC app on the main app
+      this.app.use(trpcApp);
+      
+      logger.info('tRPC server setup completed successfully');
+    } catch (error) {
+      logger.error('Failed to setup tRPC server:', error);
+      throw error;
+    }
   }
 
   async initialize(): Promise<void> {
-    try {
-      logger.info('Initializing application...');
-      
-      // Initialize plugins
-      await this.pluginManager.initializePlugins();
-      
-      // Emit system startup event
-      await this.emitSystemEvent(EVENT_NAMES.SYSTEM_STARTUP, {
-        message: 'Application started successfully'
-      });
-      
-      logger.info('Application initialized successfully');
-    } catch (error) {
-      logger.error('Failed to initialize application:', error);
-      throw error;
-    }
+    logger.info('Initializing application...');
+    
+    // Initialize plugins first
+    await this.pluginManager.initializePlugins();
+    
+    // Setup tRPC server
+    await this.setupTRPC();
+    
+    // Emit system events
+    const initEvent: Event = {
+      name: EVENT_NAMES.SYSTEM_STARTUP,
+      payload: {
+        timestamp: new Date().toISOString(),
+        plugins: this.pluginManager.getAllPlugins().map(p => p.name),
+      },
+      context: {
+        timestamp: Date.now(),
+        source: 'system',
+        correlationId: `init_${Date.now()}`,
+      },
+    };
+    await this.eventManager.emit(initEvent);
+    
+    logger.info('Application initialized successfully');
   }
 
-  async start(): Promise<void> {
-    try {
-      this.server = this.app.listen(config.port, () => {
-        logger.info(`Server running on port ${config.port}`);
-      });
-    } catch (error) {
-      logger.error('Failed to start server:', error);
-      throw error;
-    }
+  async start(port?: number): Promise<void> {
+    const serverPort = port || config.port;
+    
+    this.server = this.app.listen(serverPort, () => {
+      logger.info(`Server running on port ${serverPort}`);
+    });
+    
+    // Emit system events
+    const startEvent: Event = {
+      name: EVENT_NAMES.SYSTEM_STARTUP,
+      payload: {
+        timestamp: new Date().toISOString(),
+        port: serverPort,
+      },
+      context: {
+        timestamp: Date.now(),
+        source: 'system',
+        correlationId: `start_${Date.now()}`,
+      },
+    };
+    await this.eventManager.emit(startEvent);
   }
 
   async stop(): Promise<void> {
-    try {
-      // Emit system shutdown event
-      await this.emitSystemEvent(EVENT_NAMES.SYSTEM_SHUTDOWN, {
-        message: 'Application shutting down'
-      });
-      
-      // Destroy plugins
-      await this.pluginManager.destroyPlugins();
-      
-      if (this.server) {
-        this.server.close();
-      }
-      
-      logger.info('Application stopped successfully');
-    } catch (error) {
-      logger.error('Error stopping application:', error);
-      throw error;
+    logger.info('Stopping application...');
+    
+    if (this.server) {
+      this.server.close();
     }
+    
+    // Destroy plugins
+    await this.pluginManager.destroyPlugins();
+    
+    // Emit system events
+    const stopEvent: Event = {
+      name: EVENT_NAMES.SYSTEM_SHUTDOWN,
+      payload: {
+        timestamp: new Date().toISOString(),
+      },
+      context: {
+        timestamp: Date.now(),
+        source: 'system',
+        correlationId: `stop_${Date.now()}`,
+      },
+    };
+    await this.eventManager.emit(stopEvent);
+    
+    logger.info('Application stopped successfully');
   }
 
   getEventManager(): EventManager {
@@ -109,31 +171,5 @@ export class Application {
 
   getPluginManager(): PluginManager {
     return this.pluginManager;
-  }
-
-  getApp(): express.Application {
-    return this.app;
-  }
-
-  private async emitSystemEvent(eventName: string, payload: any): Promise<void> {
-    const event: Event = {
-      name: eventName as any,
-      payload,
-      context: this.createEventContext('system')
-    };
-    
-    await this.eventManager.emit(event);
-  }
-
-  private createEventContext(source: string): EventContext {
-    return {
-      timestamp: Date.now(),
-      source,
-      correlationId: this.generateCorrelationId()
-    };
-  }
-
-  private generateCorrelationId(): string {
-    return `corr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 } 

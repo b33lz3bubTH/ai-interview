@@ -27,6 +27,11 @@ export class UserPlugin extends BasePlugin {
       this.createEventHandler(EVENT_NAMES.USER_LOGIN, this.handleUserLogin.bind(this))
     );
 
+    this.registerEventHandler(
+      EVENT_NAMES.USER_ME,
+      this.createEventHandler(EVENT_NAMES.USER_ME, this.handleUserMe.bind(this))
+    );
+
     logger.info('UserPlugin initialized successfully');
   }
 
@@ -48,5 +53,9 @@ export class UserPlugin extends BasePlugin {
   private async handleUserLogin(event: Event): Promise<void> {
     logger.info('User login:', event.payload);
     // Handle user login logic
+  }
+
+  private async handleUserMe(event: Event): Promise<void> {
+    logger.info('User me:', event.payload);
   }
 } 

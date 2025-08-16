@@ -1,24 +1,35 @@
 import 'reflect-metadata';
 import { Application } from '@/core/Application';
 import { UserPlugin } from '@/plugins/UserPlugin';
-import { OrderPlugin } from '@/plugins/OrderPlugin';
 import logger from '@/utils/logger';
 
+// Get port from command line arguments or use default
+function getPort(): number {
+  const portArg = process.argv.find(arg => arg.startsWith('--port='));
+  if (portArg) {
+    const port = parseInt(portArg.split('=')[1]);
+    if (!isNaN(port) && port > 0) {
+      return port;
+    }
+  }
+  return 3000; // default port
+}
+
 async function bootstrap() {
+  const port = getPort();
   const app = new Application();
   
   try {
     // Register plugins
     await app.getPluginManager().registerPlugin(new UserPlugin());
-    await app.getPluginManager().registerPlugin(new OrderPlugin());
     
     // Initialize application
     await app.initialize();
     
-    // Start server
-    await app.start();
+    // Start server with specified port
+    await app.start(port);
     
-    logger.info('Application started successfully');
+    logger.info(`Application started successfully on port ${port}`);
     
     // Graceful shutdown
     process.on('SIGTERM', async () => {
