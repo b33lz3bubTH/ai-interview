@@ -10,6 +10,10 @@ export async function createTRPCServer(eventManager: EventManager) {
   const appRouter = createAppRouter(eventManager);
   const app = express();
 
+  // Add body parser middleware with increased limit for audio files
+  app.use(express.json({ limit: '20mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+
   app.use(
     '/trpc',
     trpcExpress.createExpressMiddleware({
@@ -18,6 +22,8 @@ export async function createTRPCServer(eventManager: EventManager) {
       onError: ({ error }) => {
         logger.error('tRPC error:', error);
       },
+      // Add configuration for large payloads (20MB in bytes)
+      maxBodySize: 20 * 1024 * 1024,
     })
   );
 

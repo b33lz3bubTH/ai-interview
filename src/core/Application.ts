@@ -53,8 +53,11 @@ export class Application {
       },
     }));
     this.app.use(cors());
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
+    // Increase JSON body size limit to 20MB for audio files
+    this.app.use(express.json({ limit: '20mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+    // Add raw body parser for large binary data
+    this.app.use(express.raw({ type: 'application/octet-stream', limit: '20mb' }));
   }
 
   private setupRoutes(): void {

@@ -2,6 +2,7 @@ import { initTRPC } from '@trpc/server';
 import { EventManager } from '@/manager/EventManager';
 import { createUserRouter } from './user.router';
 import { createSystemRouter } from './system.router';
+import { createInteractionsProcessor } from './interactions.router';
 
 const t = initTRPC.create();
 
@@ -11,7 +12,8 @@ export const publicProcedure = t.procedure;
 export function createAppRouter(eventManager: EventManager) {
   return router({
     user: createUserRouter(eventManager),
-    system: createSystemRouter(eventManager)
+    system: createSystemRouter(eventManager),
+    interactions: createInteractionsProcessor(eventManager)
   });
 }
 
