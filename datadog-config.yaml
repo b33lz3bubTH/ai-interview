@@ -1,0 +1,37 @@
+# Datadog Agent Configuration for tRPC Microservices
+# Place this file in /etc/datadog-agent/conf.d/ and restart the agent
+
+logs:
+  - type: file
+    path: /path/to/your/project/logs/application-*.log
+    service: trpc-microservices
+    source: nodejs
+    log_processing_rules:
+      - type: multi_line
+        name: "nodejs_logs"
+        pattern: "^\d{4}-\d{2}-\d{2}"
+
+  - type: file
+    path: /path/to/your/project/logs/error-*.log
+    service: trpc-microservices
+    source: nodejs
+    log_processing_rules:
+      - type: multi_line
+        name: "nodejs_error_logs"
+        pattern: "^\d{4}-\d{2}-\d{2}"
+
+# Optional: Custom metrics from logs
+# You can create custom metrics based on log patterns
+# Example: Count errors, API calls, etc.
+
+# Optional: Log parsing rules for better searchability
+# These help Datadog understand your log structure
+log_processing_rules:
+  - type: grok_parser
+    name: "trpc_logs"
+    source: nodejs
+    grok:
+      support_rules: |
+        TRPC_LOG %{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}
+      match_rules: |
+        TRPC_LOG 

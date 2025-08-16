@@ -1,3 +1,9 @@
+/*
+* his is a test router, so that we follow the trpc best practices and maintain this structure of code
+*/
+
+
+
 import { initTRPC } from '@trpc/server';
 import { z } from 'zod';
 import { EventManager } from '@/manager/EventManager';
