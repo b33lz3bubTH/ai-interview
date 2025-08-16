@@ -22,9 +22,13 @@
     "logs:cleanup": "./scripts/log-manager.sh cleanup",
     "logs:rotate": "./scripts/log-manager.sh rotate",
     "logs:monitor": "./scripts/log-manager.sh monitor",
-    "test:logging": "node scripts/test-logging.js"
+    "test:logging": "node scripts/test-logging.js",
+    "test:elasticsearch": "node scripts/test-elasticsearch.js",
+    "setup:kibana": "node scripts/setup-kibana.js",
+    "create:dashboard": "node scripts/create-dashboard.js"
   },
   "dependencies": {
+    "@elastic/elasticsearch": "^8.19.0",
     "@trpc/client": "^10.45.0",
     "@trpc/next": "^10.45.0",
     "@trpc/server": "^10.45.0",
@@ -41,6 +45,7 @@
     "uuid": "^9.0.1",
     "winston": "^3.11.0",
     "winston-daily-rotate-file": "^4.7.1",
+    "winston-elasticsearch": "^0.19.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
