@@ -121,7 +121,7 @@ export class Application {
   async start(port?: number): Promise<void> {
     const serverPort = port || config.port;
     
-    this.server = this.app.listen(serverPort, () => {
+    this.server = this.app.listen(serverPort, "0.0.0.0", () => {
       logger.info(`Server running on port ${serverPort}`);
     });
     

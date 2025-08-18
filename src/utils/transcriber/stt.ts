@@ -1,38 +1,55 @@
-/*
-docker run -d \
-  --name=faster-whisper \
-  -e WHISPER_MODEL=tiny-int8 \
-  -p 10300:10300 \
-  lscr.io/linuxserver/faster-whisper:latest
-
-*/
-
-import FormData from "form-data";
 import fs from "fs";
+import path from "path";
+import FormData from "form-data";
+import axios from "axios";
+import logger from "@/utils/logger";
 
-export class FasterWhisperClient {
-  private baseUrl: string;
+export class AudioServiceClient {
+    private serviceUrl: string;
+    private callbackUrl: string;
 
-  constructor(baseUrl = process.env.TRANSCRIPTION_SERVER || "http://localhost:10300") {
-    this.baseUrl = baseUrl;
-  }
-
-  async transcribe(filePath: string): Promise<string | unknown> {
-    const form = new FormData();
-    form.append("file", fs.createReadStream(filePath));
-
-    console.log(`form: `, form);
-
-    const response = await fetch(`${this.baseUrl}/inference`, {
-      method: "POST",
-      body: form,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Transcription failed: ${response.statusText}`);
+    constructor(serviceUrl: string, callbackUrl: string) {
+        this.serviceUrl = serviceUrl;
+        this.callbackUrl = callbackUrl;
     }
 
-    const data = await response.json();
-    return data; // Faster-Whisper returns { text, segments }
-  }
+    async sendAudio(audioPath: string, idempotentKey?: string): Promise<{ status: string; [key: string]: any }> {
+        const formData = new FormData();
+
+        console.log(`audioPath: `, audioPath);
+
+        // Verify file exists
+        if (!fs.existsSync(audioPath)) {
+            throw new Error(`File not found: ${audioPath}`);
+        }
+
+        formData.append("file", fs.createReadStream(audioPath), {
+            filename: path.basename(audioPath),
+            contentType: "audio/wav",
+        });
+        formData.append("callback", this.callbackUrl);
+        formData.append("idempotent_id", idempotentKey ?? "default-key");
+
+        const headers = {
+            ...formData.getHeaders(),
+            accept: "application/json",
+        };
+        console.log("Headers:", headers);
+
+        try {
+            const response = await axios.post(this.serviceUrl, formData, {
+                headers,
+            });
+
+            logger.log("Request sent successfully:", response.data);
+            return response.data as { status: string; [key: string]: any };
+        } catch (error: any) {
+            logger.error("Error sending audio:", error.message);
+            if (error.response) {
+                console.log("Response error data:", error.response.data);
+                console.log("Response status:", error.response.status);
+            }
+            return { status: "failed", error: error.message };
+        }
+    }
 }
